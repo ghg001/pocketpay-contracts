@@ -654,6 +654,14 @@ fn multi_lock_deterministic_sequence_invariants() {
             user_idx: 2,
             amount: 30_000,
         },
+        Operation::FailDeposit {
+            user_idx: 0,
+            amount: 0,
+        },
+        Operation::FailDeposit {
+            user_idx: 1,
+            amount: -50,
+        },
         Operation::Lock {
             user_idx: 0,
             amount: 2_000,
