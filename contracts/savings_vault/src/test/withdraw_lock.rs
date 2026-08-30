@@ -2,6 +2,28 @@ use super::*;
 use soroban_sdk::{testutils::Address as _, testutils::Ledger, Address, Env};
 
 #[test]
+fn test_can_withdraw_new_user_returns_false() {
+    let (env, _contract_id, client) = setup();
+    let user = new_user(&env);
+    set_ledger_timestamp(&env, 1000);
+
+    assert!(!client.can_withdraw(&user, &1));
+}
+
+#[test]
+fn test_can_withdraw_available_balance_no_lock_returns_false() {
+    let (env, contract_id, client) = setup();
+    let (env, _admin, client, _token_client, token_admin) = test_token(env, contract_id, client);
+    let user = new_user(&env);
+    set_ledger_timestamp(&env, 1000);
+
+    token_admin.mint(&user, &1000);
+    client.deposit(&user, &1000);
+
+    assert!(!client.can_withdraw(&user, &1));
+}
+
+#[test]
 fn test_withdraw_matured_lock_success() {
     let (env, contract_id, client) = setup();
     let (env, _admin, client, token_client, token_admin) = test_token(env, contract_id, client);
