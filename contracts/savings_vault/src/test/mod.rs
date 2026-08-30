@@ -289,6 +289,26 @@ fn test_withdraw_entire_balance() {
 }
 
 #[test]
+fn test_can_withdraw_new_user_returns_false() {
+    let env = test_env();
+    let (contract_id, client) = init_contract(&env);
+    let (env, _admin, client, _token_client, _token_admin) = test_token(env, contract_id, client);
+    let user = new_user(&env);
+    assert_eq!(client.can_withdraw(&user), false);
+}
+
+#[test]
+fn test_can_withdraw_available_balance_no_lock_returns_true() {
+    let env = test_env();
+    let (contract_id, client) = init_contract(&env);
+    let (env, _admin, client, _token_client, token_admin) = test_token(env, contract_id, client);
+    let user = new_user(&env);
+    token_admin.mint(&user, &1000);
+    deposit_balance(&client, &user, 100);
+    assert_eq!(client.can_withdraw(&user), true);
+}
+
+#[test]
 #[should_panic]
 fn test_withdraw_requires_user_authorization() {
     let env = Env::default();
