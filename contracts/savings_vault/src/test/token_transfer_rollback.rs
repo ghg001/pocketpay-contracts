@@ -90,7 +90,9 @@ fn test_failed_deposit_insufficient_token_balance() {
     );
     assert_eq!(
         locked_after, locked_before,
-        "locked balance must not change on failed deposit"
+        "locked balance unchanged after 5 failed ops"
+    );
+}cked balance must not change on failed deposit"
     );
     assert_eq!(
         events_after, events_before,
