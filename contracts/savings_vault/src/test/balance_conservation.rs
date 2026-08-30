@@ -147,6 +147,13 @@ fn snapshot(client: &SavingsVaultClient, user: &Address) -> (i128, i128) {
     (client.get_balance(user), client.get_locked_balance(user))
 }
 
+fn token_snapshot(f: &Fixture) -> (i128, i128) {
+    (
+        f.token_client.balance(&f.contract_id),
+        f.token_client.balance(&f.user),
+    )
+}
+
 /// Run one operation sequence, checking conservation after every step.
 ///
 /// Returns the final expected total so callers can make extra assertions if needed.
@@ -160,6 +167,7 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
 
     for (step, (op, expect)) in ops.iter().enumerate() {
         let before = snapshot(&f.client, &f.user);
+        let tokens_before = token_snapshot(&f);
 
         match (op, expect) {
             (Op::Deposit(amount), Expect::Ok) => {
@@ -177,6 +185,11 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
                     before,
                     "step {step}: failed deposit must not mutate balances"
                 );
+                assert_eq!(
+                    token_snapshot(&f),
+                    tokens_before,
+                    "step {step}: failed deposit must not move tokens"
+                );
             }
             (Op::Withdraw(amount), Expect::Ok) => {
                 f.client.withdraw(&f.user, amount);
@@ -192,6 +205,11 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
                     snapshot(&f.client, &f.user),
                     before,
                     "step {step}: failed withdraw must not mutate balances"
+                );
+                assert_eq!(
+                    token_snapshot(&f),
+                    tokens_before,
+                    "step {step}: failed withdraw must not move tokens"
                 );
             }
             (
@@ -223,6 +241,11 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
                     before,
                     "step {step}: failed lock must not mutate balances"
                 );
+                assert_eq!(
+                    token_snapshot(&f),
+                    tokens_before,
+                    "step {step}: failed lock must not move tokens"
+                );
             }
             (Op::WithdrawLock(idx), Expect::Ok) => {
                 let lock_id = lock_ids[*idx];
@@ -245,6 +268,11 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
                     snapshot(&f.client, &f.user),
                     before,
                     "step {step}: failed withdraw_lock must not mutate balances"
+                );
+                assert_eq!(
+                    token_snapshot(&f),
+                    tokens_before,
+                    "step {step}: failed withdraw_lock must not move tokens"
                 );
             }
             (Op::SetTime(ts), Expect::Ok) => {
