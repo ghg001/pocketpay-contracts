@@ -1057,6 +1057,20 @@ fn test_can_withdraw_no_locked_funds() {
     assert_eq!(client.can_withdraw(&user), false);
 }
 
+/// A user with only available balance and no lock cannot withdraw.
+#[test]
+fn test_can_withdraw_available_balance_no_lock_returns_false() {
+    let env = test_env();
+    let (contract_id, client) = init_contract(&env);
+    let (env, _admin, client, _token_client, token_admin) = test_token(env, contract_id, client);
+    let user = new_user(&env);
+    token_admin.mint(&user, &1000);
+    client.deposit(&user, &100);
+    assert_eq!(client.get_balance(&user), 100);
+    assert_eq!(client.get_locked_balance(&user), 0);
+    assert_eq!(client.can_withdraw(&user), false);
+}
+
 // -------------------------------------------------------------------------
 // Locked balance correctness across boundary checks
 // -------------------------------------------------------------------------
