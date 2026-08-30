@@ -233,3 +233,27 @@ fn test_failed_withdrawal_preserves_locks() {
     assert_eq!(lock_after.withdrawn, lock_before.withdrawn);
 }
 
+// ---------------------------------------------------------------------------
+// Failed deposit leaves state unchanged
+// ---------------------------------------------------------------------------
+
+/// A zero-amount deposit is rejected and leaves balances untouched.
+#[test]
+fn test_failed_deposit_zero_amount_leaves_state_intact() {
+    let env = test_env();
+    let (_admin, client) = init_with_admin(&env);
+    let user = Address::generate(&env);
+
+    env.ledger().set_timestamp(1_000);
+    fund(&client, &user, 1_000);
+
+    let balance_before = client.get_balance(&user);
+    let locked_before = client.get_locked_balance(&user);
+
+    let res = client.try_deposit(&user, &0);
+    assert!(res.is_err());
+
+    assert_eq!(client.get_balance(&user), balance_before);
+    assert_eq!(client.get_locked_balance(&user), locked_before);
+}
+
