@@ -231,7 +231,21 @@ fn run_sequence(ops: &[(Op, Expect)]) -> i128 {
                 expected_total -= lock_amt;
             }
             (Op::WithdrawLock(_), Expect::Err) => {
-                panic!("step {step}: WithdrawLock cannot fail for valid indices");
+                let lock_id = if *idx < lock_ids.len() {
+                    lock_ids[*idx]
+                } else {
+                    u64::MAX
+                };
+                let res = f.client.try_withdraw_lock(&f.user, &lock_id);
+                assert!(
+                    res.is_err(),
+                    "step {step}: withdraw_lock({lock_id}) was expected to fail"
+                );
+                assert_eq!(
+                    snapshot(&f.client, &f.user),
+                    before,
+                    "step {step}: failed withdraw_lock must not mutate balances"
+                );
             }
             (Op::SetTime(ts), Expect::Ok) => {
                 set_ledger_timestamp(&f.env, *ts);
@@ -493,6 +507,37 @@ fn conservation_invalid_locks_do_not_mutate() {
     ]);
     // 300 - 50 = 250 (100 of which is locked)
     assert_eq!(total, 250);
+}
+
+/// Attempting to withdraw an unmatured lock must fail and leave balances unchanged.
+#[test]
+fn conservation_failed_withdraw_lock_does_not_mutate() {
+    run_sequence(&[
+        (Op::Deposit(500), Expect::Ok),
+        (
+            Op::Lock {
+                amount: 400,
+                unlock_time: 20_000,
+            },
+            Expect::Ok,
+        ),
+        // Lock is not yet matured; withdraw_lock must fail and roll back.
+        (Op::WithdrawLock(0), Expect::Err),
+        (Op::Withdraw(100), Expect::Ok),
+        // After maturity, the lock can be withdrawn.
+        (Op::SetTime(20_000), Expect::Ok),
+        (Op::WithdrawLock(0), Expect::Ok),
+    ]);
+}
+
+/// Withdrawing a non-existent lock must fail and leave balances unchanged.
+#[test]
+fn conservation_invalid_withdraw_lock_id_does_not_mutate() {
+    run_sequence(&[
+        (Op::Deposit(100), Expect::Ok),
+        (Op::WithdrawLock(999), Expect::Err),
+        (Op::Withdraw(100), Expect::Ok),
+    ]);
 }
 
 /// Withdraw that would touch only locked (unmatured) funds must fail and not mutate.
