@@ -32,6 +32,7 @@ use soroban_sdk::{
 #[cfg(test)]
 mod can_withdraw_default_tests {
     use super::*;
+    use soroban_sdk::testutils::{Address as _, Env as _};
 
     #[test]
     fn can_withdraw_returns_false_for_new_user() {
